@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mInbox - Trees Orders</title>
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="mds.js"></script>
+</head>
+<body>
+    <div class="tie-dye-bg"></div>
+    
+    <header class="header">
+        <div class="logo">
+            <span class="logo-icon">📬</span>
+            <h1>mInbox</h1>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="inbox-container">
+            <div class="inbox-tabs">
+                <button class="inbox-tab active" data-view="inbox">
+                    📥 Inbox <span class="badge" id="unread-count">0</span>
+                </button>
+                <button class="inbox-tab" data-view="all">
+                    📋 All <span class="badge secondary" id="total-count">0</span>
+                </button>
+            </div>
+            
+            <div class="inbox-toolbar">
+                <button class="refresh-btn" id="refresh-btn">🔄 Refresh</button>
+            </div>
+
+            <div class="inbox-list" id="inbox-list">
+                <div class="empty-inbox">
+                    <div class="empty-icon">📭</div>
+                    <p>No orders yet</p>
+                    <p class="empty-hint">Orders from your shop will appear here</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="message-modal" class="modal hidden">
+        <div class="modal-content message-detail">
+            <button class="modal-close" id="modal-close">&times;</button>
+            
+            <div class="message-header">
+                <h2 id="modal-title">Order Details</h2>
+                <span class="order-ref" id="modal-ref">-</span>
+            </div>
+            
+            <div class="message-info" id="modal-info">
+            </div>
+            
+            <div class="status-section">
+                <span class="section-label">Order Status:</span>
+                <div class="status-buttons">
+                    <button class="status-btn" data-status="PAID">Paid</button>
+                    <button class="status-btn" data-status="PREPARING">Preparing</button>
+                    <button class="status-btn" data-status="SHIPPED">Shipped</button>
+                </div>
+            </div>
+            
+            <div class="message-actions">
+                <button class="action-btn" id="copy-address-btn">📋 Copy Address</button>
+                <button class="action-btn chainmail-btn" id="open-chainmail-btn">💬 Open ChainMail</button>
+            </div>
+            
+            <div class="message-tx">
+                <span class="tx-label">TX ID:</span>
+                <div class="tx-copy-row">
+                    <span class="tx-id" id="modal-txid">-</span>
+                    <button class="copy-btn" id="copy-txid-btn">Copy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>Powered by Minima</p>
+    </footer>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
