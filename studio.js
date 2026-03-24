@@ -45,7 +45,7 @@ function serveFile(res, filePath) {
     if (!fs.existsSync(filePath)) { res.writeHead(404); res.end('Not found'); return; }
     const ext  = path.extname(filePath).toLowerCase();
     const data = fs.readFileSync(filePath);
-    res.writeHead(200, { 'Content-Type': mime(ext), 'Content-Length': data.length });
+    res.writeHead(200, { 'Content-Type': mime(ext), 'Content-Length': data.length, 'Cache-Control': 'no-cache, no-store, must-revalidate' });
     res.end(data);
 }
 
