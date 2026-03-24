@@ -8,7 +8,20 @@
   },
   "scripts": {
     "studio": "node studio.js",
-    "build": "node build-miniFShop.js"
+    "build": "node build-miniFShop.js",
+    "build:mac": "bash build/build-mac.sh"
+  },
+  "pkg": {
+    "scripts": [
+      "studio.js",
+      "studio-builder.js"
+    ],
+    "assets": [
+      "web/**/*",
+      "miniFShop-shop/**/*",
+      "mInbox/**/*"
+    ],
+    "outputPath": "release"
   },
   "keywords": [
     "minima",
@@ -31,12 +44,16 @@
     "build-miniFShop.js",
     "web/",
     "mInbox/",
-    "miniFShop-shop/"
+    "miniFShop-shop/",
+    "build/"
   ],
   "engines": {
     "node": ">=16"
   },
   "dependencies": {
     "archiver": "^7.0.1"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.14.1"
   }
 }
