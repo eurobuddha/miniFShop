@@ -19,7 +19,7 @@ function getCurrencyConfig(currency) {
     if (currency === 'USDT') {
         return { label: 'USDT', tokenId: USDT_TOKEN_ID, icon: 'usdt_icon.svg' };
     }
-    return { label: 'MINI', tokenId: MINI_TOKEN_ID, icon: 'minima_logo_bw.svg' };
+    return { label: 'Minima', tokenId: MINI_TOKEN_ID, icon: 'minima_logo_bw.svg' };
 }
 
 function ensureDir(d) { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); }

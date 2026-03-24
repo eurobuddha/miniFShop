@@ -563,7 +563,7 @@ function processOrderCoin(coin) {
                     type: decrypted.type,
                     product: decrypted.product || 'miniFShop',
                     amount: decrypted.amount || '1',
-                    currency: decrypted.currency || 'MINI',
+                    currency: decrypted.currency || 'Minima',
                     email: decrypted.email || '',
                     shipping: decrypted.shipping || '',
                     message: decrypted.message || '',
