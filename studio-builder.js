@@ -132,7 +132,7 @@ async function build({ name, description, price, maxUnits, imagePath, address, p
         copyFile(DEFAULT_IMAGE, path.join(shopTmp, 'product.svg'));
     }
 
-    const shopFile    = 'shop.mds.zip';
+    const shopFile    = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '.mds.zip';
     const shopZipPath = path.join(distDir, shopFile);
     const shopSize    = await zipDir(shopTmp, shopZipPath);
     fs.rmSync(shopTmp, { recursive: true, force: true });
