@@ -42,13 +42,16 @@ Section "Install"
     File /r "..\release\staging\*.*"
 
     ; ── Write the VBScript launcher — runs server with NO visible window ────────
-    ; wscript.exe is built into every Windows version and can run VBScript silently.
+    ; GetParentFolderName returns a clean path without a trailing backslash,
+    ; avoiding ERROR_INVALID_NAME (0x7B) on CurrentDirectory assignment.
+    ; Chr(34) builds quoted paths without nested quote escaping issues.
     FileOpen  $0 "$INSTDIR\launch.vbs" w
+    FileWrite $0 "Set fso = CreateObject($\"Scripting.FileSystemObject$\")$\r$\n"
+    FileWrite $0 "Set sh  = CreateObject($\"WScript.Shell$\")$\r$\n"
     FileWrite $0 "Dim d$\r$\n"
-    FileWrite $0 "d = Left(WScript.ScriptFullName, InStrRev(WScript.ScriptFullName, $\"\\\$\"))$\r$\n"
-    FileWrite $0 "Set sh = CreateObject($\"WScript.Shell$\")$\r$\n"
+    FileWrite $0 "d = fso.GetParentFolderName(WScript.ScriptFullName)$\r$\n"
     FileWrite $0 "sh.CurrentDirectory = d$\r$\n"
-    FileWrite $0 "sh.Run $\"$\"$\"$\" & d & $\"node.exe$\"$\"$\" & $\" $\"$\"$\" & d & $\"studio.js$\"$\"$\", 0, False$\r$\n"
+    FileWrite $0 "sh.Run Chr(34) & d & $\"\node.exe$\" & Chr(34) & $\" $\" & Chr(34) & d & $\"\studio.js$\" & Chr(34), 0, False$\r$\n"
     FileClose $0
 
     ; ── Write uninstaller ────────────────────────────────────────────────────
