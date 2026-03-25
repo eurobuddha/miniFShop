@@ -513,8 +513,11 @@ function tryDecryptMessage(coinid, stateData, callback) {
             console.log('Decrypted text:', text.substring(0, 100) + '...');
             
             const decrypted = JSON.parse(text);
+            // mxpublickey is no longer in the on-chain envelope (removed to prevent
+            // buyer identity being visible on-chain). buyerMxKey in the payload is
+            // the authoritative source for the buyer's public key.
             decrypted._senderPublicKey = response.response.message.mxpublickey || null;
-            
+
             console.log('Decrypted order:', JSON.stringify({ type: decrypted.type, ref: decrypted.ref }));
             callback(decrypted);
         } catch (e) {
@@ -570,7 +573,8 @@ function processOrderCoin(coin) {
                     timestamp: decrypted.timestamp || Date.now(),
                     coinid: coinid,
                     read: false,
-                    // Prefer explicitly sent MX key, fallback to decryption sender key
+                    // buyerMxKey is inside the encrypted payload — the only source now
+                    // that we no longer send the ChainMail envelope with visible mxpublickey
                     buyerPublicKey: decrypted.buyerMxKey || decrypted._senderPublicKey || ''
                 };
                 console.log('Buyer MX key for ChainMail:', order.buyerPublicKey);

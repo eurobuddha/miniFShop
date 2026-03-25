@@ -123,7 +123,11 @@
                     }
                     
                     const message = resp.response?.message || {};
-                    const encrypted = resp.response?.data || message.data;
+                    // Use only the inner encrypted bytes (message.data), NOT resp.response.data.
+                    // resp.response.data is the full ChainMail envelope hex which contains
+                    // mxpublickey in plaintext — storing it in state[99] exposes the buyer's
+                    // identity on-chain. message.data is the raw ciphertext only.
+                    const encrypted = message.data;
                     
                     console.log('Encrypted data extracted:', encrypted ? encrypted.substring(0, 50) + '...' : 'null');
                     
