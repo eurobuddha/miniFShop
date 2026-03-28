@@ -208,17 +208,20 @@ function renderOrders() {
     let html = '';
     filtered.forEach((order, idx) => {
         const statusClass = (order.status || 'PAID').toLowerCase();
+        const isInquiry = order.type === 'INQUIRY';
+        const icon = isInquiry ? '💬' : '📦';
+        const metaRight = isInquiry ? 'Question' : escapeHtml(order.email || 'No email');
         html += `
         <div class="order-item ${order.read ? '' : 'unread'}" data-idx="${idx}">
-            <div class="order-icon">📦</div>
+            <div class="order-icon">${icon}</div>
             <div class="order-content">
                 <div class="order-header">
                     <span class="order-product">${escapeHtml(order.product)}</span>
-                    <span class="status-badge status-${statusClass}">${escapeHtml(order.status || 'PAID')}</span>
+                    <span class="status-badge status-${statusClass}">${isInquiry ? 'INQUIRY' : escapeHtml(order.status || 'PAID')}</span>
                 </div>
                 <div class="order-meta">
-                    <span class="order-amount">${escapeHtml(order.amount)} ${escapeHtml(order.currency)}</span>
-                    <span class="order-email">${escapeHtml(order.email || 'No email')}</span>
+                    <span class="order-amount">${isInquiry ? 'Message' : escapeHtml(order.amount) + ' ' + escapeHtml(order.currency)}</span>
+                    <span class="order-email">${metaRight}</span>
                 </div>
                 <div class="order-time">${formatDate(order.timestamp)}</div>
             </div>
@@ -472,22 +475,50 @@ function loadOrders() {
     });
 }
 
+function tryParsePlaintext(hexData) {
+    try {
+        let clean = hexData;
+        if (clean.startsWith('0x')) clean = clean.substring(2);
+        let text = '';
+        for (let i = 0; i < clean.length; i += 2) {
+            text += String.fromCharCode(parseInt(clean.substr(i, 2), 16));
+        }
+        if (text.charAt(0) !== '{') return null;
+        const parsed = JSON.parse(text);
+        if (parsed.type) {
+            console.log('Parsed as plaintext JSON:', JSON.stringify({ type: parsed.type, ref: parsed.ref }));
+            return parsed;
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
 function tryDecryptMessage(coinid, stateData, callback) {
     let cleanData = stateData;
     if (cleanData && cleanData.startsWith('0x')) cleanData = cleanData.substring(2);
-    
+
     console.log('Attempting decrypt, data preview:', cleanData ? cleanData.substring(0, 80) + '...' : 'null');
-    
+
+    // First try plaintext hex JSON (unencrypted messages)
+    const plaintext = tryParsePlaintext(cleanData);
+    if (plaintext) {
+        callback(plaintext);
+        return;
+    }
+
+    // Then try maxmessage decryption (encrypted envelope)
     MDS.cmd('maxmessage action:decrypt data:' + cleanData, function(response) {
         console.log('Decrypt response status:', response?.status);
         console.log('Decrypt response valid:', response?.response?.message?.valid);
-        
+
         if (!response || !response.status) {
             console.log('Decryption failed - no response or status false');
             callback(null);
             return;
         }
-        
+
         // Check if decryption was valid (ChainMail pattern)
         const valid = response.response && response.response.message && response.response.message.valid;
         if (!valid) {
@@ -495,7 +526,7 @@ function tryDecryptMessage(coinid, stateData, callback) {
             callback(null);
             return;
         }
-        
+
         try {
             let hexData = response.response.message.data;
             if (!hexData) {
@@ -504,18 +535,15 @@ function tryDecryptMessage(coinid, stateData, callback) {
                 return;
             }
             if (hexData.startsWith('0x')) hexData = hexData.substring(2);
-            
+
             let text = '';
             for (let i = 0; i < hexData.length; i += 2) {
                 text += String.fromCharCode(parseInt(hexData.substr(i, 2), 16));
             }
-            
+
             console.log('Decrypted text:', text.substring(0, 100) + '...');
-            
+
             const decrypted = JSON.parse(text);
-            // buyerMxKey in the encrypted payload is the preferred source.
-            // _senderPublicKey from the decrypt envelope is kept as a fallback
-            // for orders sent before the on-chain privacy fix.
             decrypted._senderPublicKey = response.response.message.mxpublickey || null;
 
             console.log('Decrypted order:', JSON.stringify({ type: decrypted.type, ref: decrypted.ref }));
@@ -533,13 +561,19 @@ function processOrderCoin(coin) {
     let state99 = null;
     if (coin.state) {
         console.log('Coin has state:', coin.state);
-        for (let s of coin.state) {
-            if (s.port === 99 || s.port === '99') {
-                state99 = s.data;
-                console.log('Found state99:', state99 ? state99.substring(0, 50) + '...' : null);
-                break;
+        if (Array.isArray(coin.state)) {
+            // Format from 'coins' command: [{port: 99, data: '0x...'}]
+            for (let s of coin.state) {
+                if (s.port === 99 || s.port === '99') {
+                    state99 = s.data;
+                    break;
+                }
             }
+        } else if (typeof coin.state === 'object') {
+            // Format from NOTIFYCOIN event: {99: '0x...'}
+            state99 = coin.state[99] || coin.state['99'] || null;
         }
+        if (state99) console.log('Found state99:', state99.substring(0, 50) + '...');
     }
     
     if (!state99) {
@@ -584,6 +618,26 @@ function processOrderCoin(coin) {
                     console.log('saveOrderToDb result:', success);
                     loadOrders();
                 });
+            });
+        } else if (decrypted.type === 'INQUIRY') {
+            console.log('Processing INQUIRY type, coinid:', coinid);
+            isOrderStored(coinid, function(stored) {
+                if (stored) return;
+                const order = {
+                    ref: decrypted.ref || 'INQ-' + Date.now(),
+                    type: 'INQUIRY',
+                    product: decrypted.product || '',
+                    amount: '0.0001',
+                    currency: 'MINI',
+                    email: '',
+                    shipping: '',
+                    message: decrypted.message || '',
+                    timestamp: decrypted.timestamp || Date.now(),
+                    coinid: coinid,
+                    read: false,
+                    buyerPublicKey: decrypted.buyerMxKey || decrypted._senderPublicKey || ''
+                };
+                saveOrderToDb(order, function() { loadOrders(); });
             });
         } else if (decrypted.type === 'REPLY') {
             // Handle buyer replies

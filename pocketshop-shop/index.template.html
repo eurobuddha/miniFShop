@@ -24,12 +24,17 @@
                     <span class="price">{{PRODUCT_PRICE}} {{CURRENCY_LABEL}} each</span>
                 </div>
                 <div class="quantity-selector">
-                    <button class="qty-btn" id="qty-minus">−</button>
+                    <button class="qty-btn" id="qty-minus">&minus;</button>
                     <input type="number" id="quantity" value="1" min="1" max="{{MAX_UNITS}}" readonly>
                     <button class="qty-btn" id="qty-plus">+</button>
                 </div>
                 <p class="total-price">Total: <span id="total-display">{{PRODUCT_PRICE}}</span> {{CURRENCY_LABEL}}</p>
                 <button id="buy-btn" class="buy-btn">Buy Now</button>
+                <hr class="card-divider">
+                <button id="chainmail-btn" class="chainmail-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    ChainMail the Vendor
+                </button>
             </div>
         </main>
 
@@ -39,37 +44,47 @@
         </footer>
     </div>
 
+    <!-- Payment Modal -->
     <div id="modal" class="modal hidden">
         <div class="modal-content">
             <button class="close" id="modal-close">&times;</button>
             <h2>Order {{PRODUCT_NAME}}</h2>
-            
+
             <div class="form-group">
-                <label>Your Email</label>
-                <input type="email" id="email" placeholder="For delivery confirmation">
+                <label>Delivery Type</label>
+                <div class="delivery-toggle">
+                    <button class="delivery-option active" data-type="physical">Physical</button>
+                    <button class="delivery-option" data-type="digital">Digital</button>
+                </div>
             </div>
-            
-            <div class="form-group">
+
+            <div id="chainmail-note" class="chainmail-note hidden">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                <span>Correspondence will come via ChainMail.</span>
+            </div>
+
+            <div id="address-group" class="form-group">
                 <label>Shipping Address</label>
                 <textarea id="address" placeholder="Where should we send your order?" rows="3"></textarea>
             </div>
-            
+
             <div class="form-group">
                 <label>Message (optional)</label>
                 <textarea id="message" placeholder="Any special instructions?" rows="2"></textarea>
             </div>
-            
+
             <div class="summary">
-                <p><span id="order-qty">1</span> x {{PRODUCT_PRICE}} = <strong><span id="order-total">{{PRODUCT_PRICE}}</span> {{CURRENCY_LABEL}}</strong></p>
+                <p><span id="order-qty">1</span> &times; {{PRODUCT_PRICE}} = <strong><span id="order-total">{{PRODUCT_PRICE}}</span> {{CURRENCY_LABEL}}</strong></p>
                 <p class="hint">Payment TX ID will serve as your order confirmation</p>
             </div>
-            
+
             <button id="pay-btn" class="pay-btn">Pay <span id="pay-amount">{{PRODUCT_PRICE}}</span> {{CURRENCY_LABEL}}</button>
-            
+
             <div id="status" class="status hidden"></div>
         </div>
     </div>
 
+    <!-- Confirmation Modal -->
     <div id="confirm" class="modal hidden">
         <div class="modal-content">
             <h2>Order Placed!</h2>
@@ -79,8 +94,32 @@
                 <p id="tx-id" class="tx-id"></p>
                 <button id="copy-tx" class="copy-btn">Copy</button>
             </div>
-            <p class="hint">Keep this TX ID for your records. The vendor will contact you via email.</p>
+            <p class="hint">Keep this TX ID for your records.</p>
             <button id="close-confirm" class="buy-btn">Done</button>
+        </div>
+    </div>
+
+    <!-- ChainMail Inquiry Modal -->
+    <div id="inquiry-modal" class="modal hidden">
+        <div class="modal-content">
+            <button class="close" id="inquiry-close">&times;</button>
+            <h2>Message the Vendor</h2>
+
+            <div id="inquiry-form">
+                <div class="form-group">
+                    <label>Your Question</label>
+                    <textarea id="inquiry-message" placeholder="Ask the vendor anything about this product..." rows="4"></textarea>
+                </div>
+
+                <button id="send-inquiry-btn" class="pay-btn">Send Message</button>
+                <div id="inquiry-status" class="status hidden"></div>
+            </div>
+
+            <div id="inquiry-sent" class="inquiry-sent" style="display:none;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+                <p>Your message has been sent to the vendor via ChainMail. They will reply on-chain.</p>
+                <button id="inquiry-done-btn" class="buy-btn" style="margin-top:16px;">Done</button>
+            </div>
         </div>
     </div>
 
@@ -90,18 +129,11 @@
         const UNIT_PRICE = {{PRODUCT_PRICE}};
         const MAX_UNITS = {{MAX_UNITS}};
         const PRODUCT_NAME = "{{PRODUCT_NAME}}";
-        
+
         let vendorPublicKey = null;
         let buyerMxPublicKey = null;
         let quantity = 1;
-        
-        function hexToText(hex) {
-            let text = '';
-            for (let i = 0; i < hex.length; i += 2) {
-                text += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
-            }
-            return text;
-        }
+        let deliveryType = 'physical';
 
         function textToHex(text) {
             let hex = '';
@@ -117,7 +149,7 @@
                 const hexData = textToHex(jsonStr);
                 console.log('Encrypting with publicKey:', publicKey ? publicKey.substring(0, 20) + '...' : 'null');
                 console.log('Data to encrypt:', jsonStr);
-                
+
                 MDS.cmd('maxmessage action:encrypt publickey:' + publicKey + ' data:' + hexData, function(resp) {
                     console.log('Encrypt response:', JSON.stringify(resp));
                     if (!resp || !resp.status) {
@@ -125,18 +157,18 @@
                         reject(new Error('Encryption failed: ' + (resp?.error || 'No response')));
                         return;
                     }
-                    
+
                     const message = resp.response?.message || {};
                     const encrypted = resp.response?.data || message.data;
-                    
+
                     console.log('Encrypted data extracted:', encrypted ? encrypted.substring(0, 50) + '...' : 'null');
-                    
+
                     if (!encrypted) {
                         console.log('Encryption failed - no encrypted data in response');
                         reject(new Error('Encryption failed: no encrypted data'));
                         return;
                     }
-                    
+
                     resolve({
                         encrypted: encrypted,
                         senderPublicKey: message.mxpublickey || resp.response?.mxpublickey || null
@@ -168,7 +200,7 @@
             document.getElementById('order-qty').textContent = quantity;
             document.getElementById('order-total').textContent = total;
             document.getElementById('pay-amount').textContent = total;
-            
+
             // Update button states
             document.getElementById('qty-minus').disabled = quantity <= 1;
             document.getElementById('qty-plus').disabled = quantity >= MAX_UNITS;
@@ -188,6 +220,26 @@
             }
         };
 
+        // Delivery type toggle
+        document.querySelectorAll('.delivery-option').forEach(function(btn) {
+            btn.onclick = function() {
+                document.querySelectorAll('.delivery-option').forEach(function(b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                deliveryType = btn.getAttribute('data-type');
+
+                var addressGroup = document.getElementById('address-group');
+                var chainmailNote = document.getElementById('chainmail-note');
+
+                if (deliveryType === 'digital') {
+                    addressGroup.style.display = 'none';
+                    chainmailNote.classList.remove('hidden');
+                } else {
+                    addressGroup.style.display = '';
+                    chainmailNote.classList.add('hidden');
+                }
+            };
+        });
+
         document.getElementById('buy-btn').onclick = function() {
             if (typeof MDS === 'undefined') {
                 alert('MDS not loaded. Please access this shop through MiniWEB.');
@@ -202,12 +254,11 @@
         };
 
         document.getElementById('pay-btn').onclick = async function() {
-            const email = document.getElementById('email').value.trim();
             const address = document.getElementById('address').value.trim();
             const message = document.getElementById('message').value.trim();
-            
-            if (!email || !address) {
-                showStatus('Please fill in email and shipping address', 'error');
+
+            if (deliveryType === 'physical' && !address) {
+                showStatus('Please fill in a shipping address', 'error');
                 return;
             }
 
@@ -234,8 +285,8 @@
                 unitPrice: UNIT_PRICE.toString(),
                 totalPrice: totalPrice,
                 currency: "{{CURRENCY_LABEL}}",
-                email: email,
-                shipping: address,
+                deliveryType: deliveryType,
+                shipping: deliveryType === 'physical' ? address : 'DIGITAL',
                 message: message,
                 buyerMxKey: buyerMxPublicKey,
                 timestamp: Date.now(),
@@ -246,22 +297,22 @@
 
             try {
                 const encryptResult = await encryptMessage(vendorPublicKey, orderData);
-                
+
                 if (!encryptResult || !encryptResult.encrypted) {
                     showStatus('Encryption failed - no encrypted data', 'error');
                     return;
                 }
-                
+
                 console.log('Encrypted order ready:', encryptResult.encrypted.substring(0, 50) + '...');
                 showStatus('Sending order with payment...', 'pending');
 
                 const state = {};
                 state[99] = encryptResult.encrypted;
                 const cmd = "send address:" + VENDOR_CONFIG.vendorAddress + " amount:" + totalPrice + " tokenid:{{TOKEN_ID}} state:" + JSON.stringify(state);
-                
+
                 MDS.cmd(cmd, function(res) {
                     console.log('Transaction response:', JSON.stringify(res));
-                    
+
                     if (res && res.response && res.response.txndetail) {
                         const txid = res.response.txndetail.txid || res.response.txid || "unknown";
                         document.getElementById('tx-id').textContent = txid;
@@ -289,15 +340,119 @@
 
         document.getElementById('close-confirm').onclick = function() {
             document.getElementById('confirm').classList.add('hidden');
-            document.getElementById('email').value = '';
             document.getElementById('address').value = '';
             document.getElementById('message').value = '';
             quantity = 1;
+            deliveryType = 'physical';
+            document.querySelectorAll('.delivery-option').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelector('.delivery-option[data-type="physical"]').classList.add('active');
+            document.getElementById('address-group').style.display = '';
+            document.getElementById('chainmail-note').classList.add('hidden');
             updateQuantityDisplay();
+        };
+
+        // ChainMail Inquiry
+        document.getElementById('chainmail-btn').onclick = function() {
+            if (typeof MDS === 'undefined') {
+                alert('MDS not loaded. Please access this shop through MiniWEB.');
+                return;
+            }
+            document.getElementById('inquiry-form').style.display = '';
+            document.getElementById('inquiry-sent').style.display = 'none';
+            document.getElementById('inquiry-message').value = '';
+            showInquiryStatus('', 'hidden');
+            document.getElementById('inquiry-modal').classList.remove('hidden');
+        };
+
+        document.getElementById('inquiry-close').onclick = function() {
+            document.getElementById('inquiry-modal').classList.add('hidden');
+        };
+
+        document.getElementById('send-inquiry-btn').onclick = async function() {
+            const btn = document.getElementById('send-inquiry-btn');
+            const msg = document.getElementById('inquiry-message').value.trim();
+            if (!msg) {
+                showInquiryStatus('Please write a message', 'error');
+                return;
+            }
+
+            if (!vendorPublicKey) {
+                showInquiryStatus('Shop not configured', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+
+            if (!buyerMxPublicKey) {
+                showInquiryStatus('Getting your info...', 'pending');
+                buyerMxPublicKey = await getMyMxPublicKey();
+                if (!buyerMxPublicKey) {
+                    showInquiryStatus('Error: Could not get your MX key', 'error');
+                    btn.disabled = false;
+                    return;
+                }
+            }
+
+            showInquiryStatus('Encrypting message...', 'pending');
+
+            const inquiryData = {
+                type: "INQUIRY",
+                product: PRODUCT_NAME,
+                message: msg,
+                buyerMxKey: buyerMxPublicKey,
+                timestamp: Date.now(),
+                ref: "INQ-" + Date.now()
+            };
+
+            try {
+                const encryptResult = await encryptMessage(vendorPublicKey, inquiryData);
+                if (!encryptResult || !encryptResult.encrypted) {
+                    showInquiryStatus('Encryption failed', 'error');
+                    btn.disabled = false;
+                    return;
+                }
+
+                showInquiryStatus('Sending message...', 'pending');
+
+                // Send as a 0.0001 transaction with encrypted message on state[99]
+                const state = {};
+                state[99] = encryptResult.encrypted;
+                const cmd = "send address:" + VENDOR_CONFIG.vendorAddress + " amount:0.0001 tokenid:0x00 state:" + JSON.stringify(state);
+                MDS.cmd(cmd, function(res) {
+                    console.log('Inquiry send response:', JSON.stringify(res));
+                    if (res && res.response && res.response.txndetail) {
+                        document.getElementById('inquiry-form').style.display = 'none';
+                        document.getElementById('inquiry-sent').style.display = '';
+                    } else if (res && res.error) {
+                        showInquiryStatus('Error: ' + res.error, 'error');
+                        btn.disabled = false;
+                    } else if (!res) {
+                        showInquiryStatus('Transaction failed: no response', 'error');
+                        btn.disabled = false;
+                    } else {
+                        document.getElementById('inquiry-form').style.display = 'none';
+                        document.getElementById('inquiry-sent').style.display = '';
+                    }
+                });
+            } catch (e) {
+                showInquiryStatus('Error: ' + e.message, 'error');
+                btn.disabled = false;
+            }
+        };
+
+        document.getElementById('inquiry-done-btn').onclick = function() {
+            document.getElementById('inquiry-modal').classList.add('hidden');
         };
 
         function showStatus(msg, type) {
             const el = document.getElementById('status');
+            el.textContent = msg;
+            el.className = 'status ' + type;
+            if (type === 'hidden') el.classList.add('hidden');
+        }
+
+        function showInquiryStatus(msg, type) {
+            const el = document.getElementById('inquiry-status');
             el.textContent = msg;
             el.className = 'status ' + type;
             if (type === 'hidden') el.classList.add('hidden');
@@ -314,7 +469,7 @@
                 updateQuantityDisplay();
             }
         });
-        
+
         setTimeout(function() {
             if (typeof MDS === 'undefined') {
                 console.error('MDS not loaded - shop accessed outside MiniWEB?');
