@@ -238,8 +238,8 @@ const VENDOR_CONFIG = {
     console.log('✓ Generated mInbox config.js');
 
     // Create shop zip (exclude template file, products.js, and old tree.svg)
-    console.log('📦 Creating shop.mds.zip...');
-    const shopZipPath = path.join(OUT_DIR, 'shop.mds.zip');
+    console.log('📦 Creating shop.zip...');
+    const shopZipPath = path.join(OUT_DIR, 'shop.zip');
     if (fs.existsSync(shopZipPath)) fs.unlinkSync(shopZipPath);
     
     const excludeFiles = ['index.template.html', 'products.js', 'tree.svg'];
@@ -255,7 +255,7 @@ const VENDOR_CONFIG = {
     execSync(`cd "${path.join(TEMPLATE_DIR, 'mInbox')}" && zip -rq "${inboxZipPath}" *`, { stdio: 'pipe' });
 
     // Check final sizes
-    const shopSize = fs.statSync(path.join(OUT_DIR, 'shop.mds.zip')).size;
+    const shopSize = fs.statSync(path.join(OUT_DIR, 'shop.zip')).size;
     const inboxSize = fs.statSync(path.join(OUT_DIR, 'mInbox.zip')).size;
     
     console.log(`
@@ -264,13 +264,13 @@ const VENDOR_CONFIG = {
 ╚═══════════════════════════════════════════════════════════╝
 
 📁 Output in dist/:
-   • shop.mds.zip   → Publish to MiniFS (${(shopSize/1024).toFixed(1)}KB)
+   • shop.zip   → Publish to MiniFS (${(shopSize/1024).toFixed(1)}KB)
    • mInbox.zip     → Install on your node (${(inboxSize/1024).toFixed(1)}KB)
 `);
 
     // Warn if over 50KB
     if (shopSize > 50 * 1024) {
-        console.log(`⚠️  WARNING: shop.mds.zip is ${(shopSize/1024).toFixed(1)}KB - exceeds 50KB limit!`);
+        console.log(`⚠️  WARNING: shop.zip is ${(shopSize/1024).toFixed(1)}KB - exceeds 50KB limit!`);
         console.log('   Consider using a smaller image or removing unnecessary files.\n');
     } else {
         console.log(`✓ Shop package is under 50KB limit\n`);
@@ -278,7 +278,7 @@ const VENDOR_CONFIG = {
 
     console.log(`To deploy:
 1. Install mInbox.zip on your Minima node via MDS Hub
-2. Publish shop.mds.zip to MiniFS for customers
+2. Publish shop.zip to MiniFS for customers
 `);
 }
 

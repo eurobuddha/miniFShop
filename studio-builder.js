@@ -1,7 +1,7 @@
 'use strict';
 
 // studio-builder.js
-// Generates shop.mds.zip + mInbox.zip from Pocket Shop templates.
+// Generates shop.zip (lint for PocketWeb) + mInbox.zip (MiniDapp) from Pocket Shop templates.
 // Called by studio.js after form submission.
 // v2: supports multi-product shops (up to 4 products).
 
@@ -157,9 +157,7 @@ async function build(opts, distDir) {
         const html = template.replace(/\{\{SHOP_NAME\}\}/g, shopName);
         fs.writeFileSync(path.join(shopTmp, 'index.html'), html);
 
-        // Generate dapp.conf
-        const desc = opts.description || '';
-        fs.writeFileSync(path.join(shopTmp, 'dapp.conf'), generateShopDappConf(shopName, desc, currency));
+        // Shop lints don't need dapp.conf — that's for MiniDapps only
 
     } else {
         // ── v1 legacy single-product build ──
@@ -175,7 +173,7 @@ async function build(opts, distDir) {
             currencyLabel: currConfig.label, tokenId: currConfig.tokenId, currencyIcon: currConfig.icon
         });
         fs.writeFileSync(path.join(shopTmp, 'index.html'), html);
-        fs.writeFileSync(path.join(shopTmp, 'dapp.conf'), generateShopDappConf(opts.name, opts.description, currency));
+        // Shop lints don't need dapp.conf — that's for MiniDapps only
 
         if (opts.imagePath && fs.existsSync(opts.imagePath)) {
             fs.copyFileSync(opts.imagePath, path.join(shopTmp, imageFile));
@@ -185,7 +183,7 @@ async function build(opts, distDir) {
     }
 
     const slug = shopName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const shopFile    = slug + '.mds.zip';
+    const shopFile    = slug + '.zip';
     const shopZipPath = path.join(distDir, shopFile);
     const shopSize    = await zipDir(shopTmp, shopZipPath);
     fs.rmSync(shopTmp, { recursive: true, force: true });
