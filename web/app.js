@@ -288,7 +288,7 @@ async function buildShop() {
     buildBtnText.textContent = 'Building...';
     buildSpinner.classList.remove('hidden');
     resultPanel.classList.add('hidden');
-    showBuildStatus(statusEl, 'pending', 'Generating MiniDapp files...');
+    showBuildStatus(statusEl, 'pending', 'Building shop files...');
 
     try {
         const res = await fetch('/api/build', {

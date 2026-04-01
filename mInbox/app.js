@@ -275,9 +275,9 @@ function openOrderModal(order) {
                 itemsHtml = '<div class="line-items-table">';
                 items.forEach(function(item) {
                     itemsHtml += '<div class="line-item-row">' +
-                        '<span class="li-name">' + escapeHtml(item.name) + '</span>' +
-                        '<span class="li-qty">' + item.qty + ' x ' + item.unitPrice + '</span>' +
-                        '<span class="li-sub">' + item.subtotal + '</span></div>';
+                        '<span class="li-name">' + escapeHtml(item.name || '') + '</span>' +
+                        '<span class="li-qty">' + escapeHtml(String(item.qty || 0)) + ' x ' + escapeHtml(String(item.unitPrice || 0)) + '</span>' +
+                        '<span class="li-sub">' + escapeHtml(String(item.subtotal || 0)) + '</span></div>';
                 });
                 itemsHtml += '</div>';
             }

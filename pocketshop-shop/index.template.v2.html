@@ -164,6 +164,8 @@
         const isSingleProduct = PRODUCTS.length === 1;
 
         // ─── Helpers ───
+        function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
         function textToHex(text) {
             let hex = '';
             for (let i = 0; i < text.length; i++) {
@@ -218,9 +220,9 @@
                 var card = document.createElement('div');
                 card.className = 'product-card';
                 card.innerHTML =
-                    '<img src="' + p.image + '" alt="' + p.name + '" class="product-image">' +
-                    '<h2>' + p.name + '</h2>' +
-                    '<p class="description">' + (p.description || '') + '</p>' +
+                    '<img src="' + esc(p.image) + '" alt="' + esc(p.name) + '" class="product-image">' +
+                    '<h2>' + esc(p.name) + '</h2>' +
+                    '<p class="description">' + esc(p.description || '') + '</p>' +
                     '<p class="price">' + fmt(p.price) + ' ' + CURRENCY.label + '</p>' +
                     (isSingleProduct ?
                         '<div class="quantity-selector">' +
@@ -345,9 +347,9 @@
             items.forEach(function(item) {
                 var row = document.createElement('div');
                 row.className = 'line-item';
-                row.innerHTML = '<span class="line-name">' + item.name + '</span>' +
-                    '<span class="line-qty">' + item.qty + ' &times; ' + fmt(item.unitPrice) + '</span>' +
-                    '<span class="line-subtotal">' + fmt(item.subtotal) + '</span>';
+                row.innerHTML = '<span class="line-name">' + esc(item.name) + '</span>' +
+                    '<span class="line-qty">' + esc(String(item.qty)) + ' &times; ' + esc(fmt(item.unitPrice)) + '</span>' +
+                    '<span class="line-subtotal">' + esc(fmt(item.subtotal)) + '</span>';
                 lineItemsEl.appendChild(row);
             });
 
@@ -404,7 +406,7 @@
             }
 
             var items = getCartItems();
-            var totalPrice = fmt(getCartTotal());
+            var totalPrice = String(Math.round(getCartTotal() * 100000000) / 100000000);
             var totalQty = getCartCount();
             var productSummary = items.map(function(i) { return i.name; }).join(', ');
             var shopName = document.title;
@@ -592,6 +594,7 @@
 
         document.getElementById('inquiry-done-btn').onclick = function() {
             document.getElementById('inquiry-modal').classList.add('hidden');
+            document.getElementById('send-inquiry-btn').disabled = false;
         };
 
         // ─── Status Helpers ───
