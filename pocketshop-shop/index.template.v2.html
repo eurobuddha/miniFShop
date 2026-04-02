@@ -223,7 +223,7 @@
                     '<img src="' + esc(p.image) + '" alt="' + esc(p.name) + '" class="product-image">' +
                     '<h2>' + esc(p.name) + '</h2>' +
                     '<p class="description">' + esc(p.description || '') + '</p>' +
-                    '<p class="price">' + fmt(p.price) + ' ' + CURRENCY.label + '</p>' +
+                    '<p class="price">' + esc(fmt(p.price)) + ' ' + esc(CURRENCY.label) + '</p>' +
                     (isSingleProduct ?
                         '<div class="quantity-selector">' +
                             '<button class="qty-btn" data-id="' + p.id + '" data-dir="-1">&minus;</button>' +
